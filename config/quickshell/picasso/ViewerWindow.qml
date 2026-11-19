@@ -81,7 +81,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Widgets
 import "../morpheus"
 import "../terminus"
@@ -93,7 +93,7 @@ import "../morpheus/icons.js" as Icons
 import "capture.js" as Cap
 import "picasso.js" as Art
 import "viewer.js" as V
-import "../morpheus/hypr.js" as Hypr
+import "../compositor/commands.js" as Hypr
 
 FloatingWindow {
   id: win
@@ -2649,7 +2649,7 @@ FloatingWindow {
   // name now, and a function of ours would quietly stand over it
   function toggleFullscreen() { if (win.mode === "view") win.full = !win.full; }
   onFullChanged: {
-    Hyprland.dispatch(Hypr.fullscreen());
+    Compositor.dispatch(Hypr.fullscreen());
     if (win.full) {
       win.chromeBefore = win.chrome;
       win.chrome = false;

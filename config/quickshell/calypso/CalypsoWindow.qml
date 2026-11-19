@@ -33,7 +33,7 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "../morpheus/controls" as Ctl
 import "../terminus"
@@ -72,7 +72,7 @@ FloatingWindow {
   // the cursor bar's re-seat after a workspace switch (terminus' thawPulse)
   property int thawPulse: 0
   Connections {
-    target: Hyprland
+    target: Compositor
     function onFocusedWorkspaceChanged() { win.thawPulse++; }
   }
 

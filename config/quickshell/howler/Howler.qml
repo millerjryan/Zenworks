@@ -23,7 +23,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Services.Mpris
 import Quickshell.Services.Notifications
 import Qt.labs.folderlistmodel
@@ -31,8 +31,7 @@ import "../oracle"
 import "../morpheus"
 import "../chronos"
 import "howler.js" as Wolf
-import "../morpheus/offspecial.js" as Off
-import "../morpheus/hypr.js" as Hypr
+import "../compositor/commands.js" as Hypr
 
 Singleton {
   id: root
@@ -279,7 +278,7 @@ Singleton {
     if (entry !== "")
       // the player may live in the special: showing it is wanted here
       // (OffSpecial)
-      Quickshell.execDetached(Off.wanted(Hypr.focusWindow(Hypr.byClass(entry))));
+      Quickshell.execDetached(Compositor.wanted(Hypr.focusWindow(Hypr.byClass(entry))));
   }
 
   // ── A RECORDING'S FRAME, KEPT ───────────────────────────────────────────
@@ -671,17 +670,17 @@ Singleton {
   function readFullscreen() {
     let on = false;
     try {
-      const w = Hyprland.focusedWorkspace;
+      const w = Compositor.focusedWorkspace;
       on = !!w && w.hasFullscreen === true;
     } catch (e) {}
     if (root.fullscreenOn !== on) root.fullscreenOn = on;
   }
   Connections {
-    target: Hyprland
+    target: Compositor
     function onFocusedWorkspaceChanged() { root.readFullscreen(); }
   }
   Connections {
-    target: Hyprland.focusedWorkspace
+    target: Compositor.isWayfire ? null : Compositor.focusedWorkspace
     ignoreUnknownSignals: true
     function onHasFullscreenChanged() { root.readFullscreen(); }
   }
@@ -716,7 +715,7 @@ Singleton {
   // rings in a loop is heard at most four times a second.
   property real lastRing: 0
   Connections {
-    target: Hyprland
+    target: Compositor
     function onRawEvent(ev) {
       if (ev.name !== "bell" || root.quiet) return;
       const now = Date.now();
@@ -805,7 +804,13 @@ Singleton {
   function focusOrLaunch(entry) {
     const e = String(entry || "").replace(/[^A-Za-z0-9._-]/g, "");
     if (e === "") return false;
-    const focus = Off.wanted(Hypr.focusWindow(Hypr.byClass(e))).map(Strings.shellQuote).join(" ");
+    if (Compositor.isWayfire) {
+      const found = Compositor.toplevels.values.find(t => t.class.toLowerCase() === e.toLowerCase());
+      if (found) Compositor.dispatch(Hypr.focusWindow(Hypr.byAddress(found.address)));
+      else Quickshell.execDetached(["sh", "-c", Desktop.launchCommand(e, "")]);
+      return true;
+    }
+    const focus = Compositor.wanted(Hypr.focusWindow(Hypr.byClass(e))).map(Strings.shellQuote).join(" ");
     Quickshell.execDetached(["sh", "-c",
       "if hyprctl clients -j | jq -e --arg c \"$1\" "
       + "'any(.[]; (.class | ascii_downcase) == ($c | ascii_downcase))' >/dev/null 2>&1; then "

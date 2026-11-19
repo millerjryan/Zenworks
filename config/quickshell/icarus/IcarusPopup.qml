@@ -9,7 +9,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "../oracle"
 import "icarus.js" as Icarus
@@ -199,11 +199,12 @@ Item {
 
   property var sessionEntries: [
     { id: "lockscreen", text: "Lock",  icon: "\uF023", cmd: "sleep 0.35 && qs ipc call Cerberus lock", confirm: false },
-    { id: "logout",     text: "Logout",      icon: "\uF08B", cmd: "hyprshutdown -t 'Logging out…' -p " + Strings.shellQuote("loginctl terminate-session "
-        + Strings.shellQuote(Quickshell.env("XDG_SESSION_ID") || "")), confirm: true },
+    { id: "logout",     text: "Logout",      icon: "\uF08B", cmd: (Compositor.isWayfire ? "" : "hyprshutdown -t 'Logging out…' -p ")
+        + (Compositor.isWayfire ? "loginctl terminate-session " + Strings.shellQuote(Quickshell.env("XDG_SESSION_ID") || "")
+          : Strings.shellQuote("loginctl terminate-session " + Strings.shellQuote(Quickshell.env("XDG_SESSION_ID") || ""))), confirm: true },
     { id: "suspend",    text: "Suspend",     icon: "\uF186", cmd: "systemctl suspend", confirm: true },
-    { id: "reboot",     text: "Reboot",      icon: "\uF021", cmd: "hyprshutdown -t 'Rebooting…' -p 'systemctl reboot'", confirm: true },
-    { id: "shutdown",   text: "Shutdown",    icon: "\uF011", cmd: "hyprshutdown -t 'Shutting down…' -p 'systemctl poweroff'", confirm: true }
+    { id: "reboot",     text: "Reboot",      icon: "\uF021", cmd: Compositor.isWayfire ? "systemctl reboot" : "hyprshutdown -t 'Rebooting…' -p 'systemctl reboot'", confirm: true },
+    { id: "shutdown",   text: "Shutdown",    icon: "\uF011", cmd: Compositor.isWayfire ? "systemctl poweroff" : "hyprshutdown -t 'Shutting down…' -p 'systemctl poweroff'", confirm: true }
   ]
 
   // for grab
@@ -364,7 +365,7 @@ Item {
 
   Process {
     id: cursorProc
-    command: ["hyprctl", "cursorpos"]
+    command: Compositor.query(["hyprctl", "cursorpos"])
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
@@ -1332,7 +1333,7 @@ Item {
       root.childMenu = "trash";
     }
 
-    HyprlandFocusGrab {
+    CompositorFocusGrab {
       windows: root.grabWindows
       active: root.shown
       onCleared: root.closeAll()

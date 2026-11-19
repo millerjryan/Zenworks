@@ -11,7 +11,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "../morpheus/gridnav.js" as Nav
 import "../terminus" as Term
@@ -350,7 +350,7 @@ LayerPopup {
   property bool regrab: false
   onCapturingChanged: if (!popup.capturing) popup.regrab = false
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     id: grab
     windows: [popup]
     active: popup.shown && !popup.regrab

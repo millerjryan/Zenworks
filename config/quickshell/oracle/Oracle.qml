@@ -40,9 +40,9 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import "oracle.js" as Ora
-import "../morpheus/hypr.js" as Hypr
+import "../compositor/commands.js" as Hypr
 import "../morpheus/undo"
 
 Singleton {
@@ -221,7 +221,7 @@ Singleton {
   // ── WHERE YOUR OWN FILES LIVE ──────────────────────────────────────
   // The shell itself may sit read-only in /usr/share/zenworks (the AUR
   // package), or be a working copy; what you make or change goes under
-  // ~/.config/zenworks either way — saved themes (themes/), the Hyprland
+  // ~/.config/zenworks either way — saved themes (themes/), the Compositor
   // files these settings write (hypr/), Plato's editor, kitty's colors.
   // Shipped files stay beside the shell and are only read.
   readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")
@@ -259,7 +259,7 @@ Singleton {
   readonly property var cursorEntry: root.cursorThemes.find((o) => o.value === root.cursorTheme) || null
   function scanCursors() {
     if (!cursorProc.running) cursorProc.running = true;
-    if (!cursorToolProc.running) cursorToolProc.running = true;
+    if (!Compositor.isWayfire && !cursorToolProc.running) cursorToolProc.running = true;
   }
   // ── HYPRCURSOR ── the library and hyprcursor-util come in one package
   // (hyprcursor, which Hyprland needs, so it is missed only on a broken
@@ -2209,7 +2209,7 @@ Singleton {
   // main one (Display). What a window opened from a key or the bar lands on.
   // Was written out in ceres', oracle's and picasso's capture managers.
   function focusedScreen() {
-    const m = Hyprland.focusedMonitor;
+    const m = Compositor.focusedMonitor;
     if (m) for (const s of Quickshell.screens) if (s.name === m.name) return s;
     return root.pickScreen("");
   }
@@ -2340,7 +2340,19 @@ Singleton {
     }
     root.defaults = d;
     root.defaultsTaken = true;
-    root.schema = out;
+    root.schema = Compositor.isWayfire ? out.map(s => root.wayfireSpec(s)) : out;
+  }
+
+  function wayfireSpec(s) {
+    if (!s.hyprFile && !s.hl && !s.input && !s.display && !s.bindKey && !s.im
+        && !["infoWindowRules", "infoStartup", "appRestore", "cursorTheme", "cursorSize", "cursorHypr",
+             "infoHyprcursor", "actionCursorMake", "actionImSettings", "imHead", "hyperKey",
+             "recBigPointer", "infoHealthHypr"].includes(s.key)) return s;
+    return { key: s.key, section: s.section, type: "info", label: s.label + " (Wayfire config)",
+      help: "This control is Hyprland-only. Configure the Wayfire equivalent in "
+        + (Quickshell.env("ZENWORKS_WAYFIRE_CONFIG") || "~/.config/zenworks-wayfire/wayfire.ini")
+        + ". Workspaces, switching, effects, input, window rules, startup apps and shortcuts use Wayfire's native plugins.",
+      alias: s.alias || "" };
   }
 
   // a monitor came or went; the pickers have to say so
@@ -2606,6 +2618,13 @@ Singleton {
   function redo() { return root.stepHistory(1); }
 
   function set(key, value) {
+    if (Compositor.isWayfire) {
+      const original = root.specs.find(s => s.key === key);
+      if (original && root.wayfireSpec(original).type === "info" && original.type !== "info") {
+        Compositor.unavailable(original.label);
+        return;
+      }
+    }
     const s = root.spec(key);
     if (!s || !Ora.stored(s)) return;
     // Hyper going with binds on it: asked first (see hyperOffAsked)
@@ -3044,7 +3063,7 @@ Singleton {
     id: reloadHypr
     interval: 150
     onTriggered: {
-      Quickshell.execDetached(["hyprctl", "reload"]);
+      if (!Compositor.isWayfire) Quickshell.execDetached(["hyprctl", "reload"]);
       rescanTimer.restart();
     }
   }
@@ -3063,7 +3082,7 @@ Singleton {
 
   Process {
     id: displayProc
-    command: ["hyprctl", "monitors", "all", "-j"]
+    command: Compositor.query(["hyprctl", "monitors", "all", "-j"])
     stdout: StdioCollector {
       id: displayOut
       waitForEnd: true
@@ -3431,7 +3450,7 @@ Singleton {
   function syncKeyValues() {
     const vals = ({});
     for (const b of root.bindList) {
-      const v = root.keysRaw[b.id];
+      const v = Compositor.isWayfire ? undefined : root.keysRaw[b.id];
       vals["bind:" + b.id] = typeof v === "string" ? Ora.normChord(v) : b.chord;
     }
     root.keyValues = vals;
@@ -3494,7 +3513,7 @@ Singleton {
   // put back the moment the chord lands, the wait is called off, or ten
   // seconds pass — a submap left on would leave every bind dead.
   function beginCapture(key) {
-    if (root.capturing === "") Hyprland.dispatch(Hypr.submap("oracle-keys"));
+    if (root.capturing === "") Compositor.dispatch(Hypr.submap("oracle-keys"));
     root.capturing = key;
     root.bindRefusal = null;
     captureTimeout.restart();
@@ -3504,7 +3523,7 @@ Singleton {
     const key = root.capturing;
     root.capturing = "";
     captureTimeout.stop();
-    Hyprland.dispatch(Hypr.submap("reset"));
+    Compositor.dispatch(Hypr.submap("reset"));
     if (chord !== undefined && chord !== null) root.set(key, chord);
   }
   Timer {
@@ -3514,6 +3533,7 @@ Singleton {
   }
 
   function scanLiveBinds() {
+    if (Compositor.isWayfire) return;
     if (!liveBindsProc.running) liveBindsProc.running = true;
   }
   Timer {
@@ -3524,7 +3544,7 @@ Singleton {
   }
   Process {
     id: liveBindsProc
-    command: ["hyprctl", "binds", "-j"]
+    command: Compositor.query(["hyprctl", "binds", "-j"])
     stdout: StdioCollector {
       id: liveBindsOut
       onStreamFinished: {
@@ -3535,13 +3555,14 @@ Singleton {
 
   FileView {
     id: bindsFile
-    path: root.hyprShippedDir + "/lua/binds.lua"
+    path: Compositor.isWayfire ? (Quickshell.env("ZENWORKS_WAYFIRE_CONFIG") || root.shippedDir + "/wayfire/wayfire.ini")
+                              : root.hyprShippedDir + "/lua/binds.lua"
     blockLoading: true
     printErrors: false
     watchChanges: true
     onFileChanged: reload()
     onLoaded: {
-      root.bindList = Ora.parseBindsLua(bindsFile.text());
+      root.bindList = Compositor.isWayfire ? Hypr.bindings(bindsFile.text()) : Ora.parseBindsLua(bindsFile.text());
       root.syncKeyValues();
       if (root.defaultsTaken) root.buildSchema();
       liveBindsTimer.restart();
@@ -3986,6 +4007,7 @@ Singleton {
   }
 
   function scanInputDevices() {
+    if (Compositor.isWayfire) return;
     root.imRefresh();
     if (inputDevProc.running) return;
     inputDevProc.running = true;
@@ -3993,7 +4015,7 @@ Singleton {
 
   Process {
     id: inputDevProc
-    command: ["hyprctl", "devices", "-j"]
+    command: Compositor.query(["hyprctl", "devices", "-j"])
     stdout: StdioCollector {
       id: inputDevOut
       onStreamFinished: {
@@ -4046,7 +4068,8 @@ Singleton {
     return p !== "" && Ora.appById(root.appScan.apps, p) ? p : "";
   }
 
-  readonly property string defaultsPath: root.hyprLuaDir + "/defaults.lua"
+  readonly property string defaultsPath: Compositor.isWayfire
+    ? root.configHome + "/zenworks-wayfire/defaults.lua" : root.hyprLuaDir + "/defaults.lua"
 
   function defaultsSpecs() {
     const out = [];

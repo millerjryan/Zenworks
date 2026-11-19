@@ -29,6 +29,7 @@
 // term.<id>Ref (the window's aliases).
 
 import QtQuick
+import "../compositor"
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -115,7 +116,7 @@ PanelWindow {
 
   Process {
     id: cursorProc
-    command: ["hyprctl", "cursorpos"]
+    command: Compositor.query(["hyprctl", "cursorpos"])
     stdout: StdioCollector {
       id: cursorOut
       waitForEnd: true

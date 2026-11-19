@@ -6,7 +6,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Wayland
 import Quickshell.Services.Pipewire
 import "zeus.js" as Zeus
@@ -792,7 +792,7 @@ LayerPopup {
     popup.homeScreen = null;
   }
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     id: grab
     // The profile menu is a layer surface of its own, so it has to be in the
     // grab or opening it would read as a click somewhere else.

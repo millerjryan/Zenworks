@@ -27,8 +27,8 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
-import "hypr.js" as Hypr
+import "../compositor"
+import "../compositor/commands.js" as Hypr
 
 Singleton {
   id: root
@@ -41,7 +41,7 @@ Singleton {
   property var specials: ({})
   Component.onCompleted: {
     const o = {};
-    for (const m of Hyprland.monitors.values) {
+    for (const m of Compositor.monitors.values) {
       const sw = m.lastIpcObject && m.lastIpcObject.specialWorkspace;
       o[m.name] = sw && sw.name ? String(sw.name) : "";
     }
@@ -59,7 +59,7 @@ Singleton {
     const mon = ws.monitor ? ws.monitor.name : "";
     if (name.startsWith("special:")) {
       if (Object.values(root.specials).indexOf(name) >= 0) return true;
-      const fw = Hyprland.focusedWorkspace;
+      const fw = Compositor.focusedWorkspace;
       return !!fw && String(fw.name) === name;
     }
     return (ws.active || ws.focused) && !root.specials[mon];
@@ -72,16 +72,16 @@ Singleton {
   // surface died, focused by address on every press)
   function raise(title, address) {
     const want = root.norm(address);
-    const all = Hyprland.toplevels.values.filter((t) => !!t.wayland && (want !== ""
+    const all = Compositor.toplevels.values.filter((t) => !!t.wayland && (want !== ""
       ? root.norm(t.address) === want
       : t.title === title && t.wayland.appId === "org.quickshell"));
     // not known to Hyprland yet (mapped this instant): the old dispatch
     if (all.length === 0) {
-      Hyprland.dispatch(want !== "" ? Hypr.focusWindow(Hypr.byAddress(want)) : Hypr.focusTitle(title));
+      Compositor.dispatch(want !== "" ? Hypr.focusWindow(Hypr.byAddress(want)) : Hypr.focusTitle(title));
       return;
     }
     const here = all.find((t) => root.onScreen(t));
-    if (here) { Hyprland.dispatch(Hypr.focusWindow(Hypr.byAddress(here.address))); return; }
+    if (here) { Compositor.dispatch(Hypr.focusWindow(Hypr.byAddress(here.address))); return; }
     const add = all.map((t) => root.norm(t.address)).filter((a) => a !== "" && root.asking.indexOf(a) < 0);
     if (add.length > 0) root.asking = root.asking.concat(add);
   }
@@ -89,7 +89,7 @@ Singleton {
   // a window on this workspace is asking
   function lit(ws) {
     if (!ws || root.asking.length === 0) return false;
-    const vals = Hyprland.toplevels.values;
+    const vals = Compositor.toplevels.values;
     return root.asking.some((a) => vals.some((t) => t.workspace === ws && root.norm(t.address) === a));
   }
 
@@ -98,8 +98,8 @@ Singleton {
   // clears it too; a window gone takes its mark with it.
   function settle() {
     if (root.asking.length === 0) return;
-    const vals = Hyprland.toplevels.values;
-    const act = Hyprland.activeToplevel;
+    const vals = Compositor.toplevels.values;
+    const act = Compositor.activeToplevel;
     const keep = root.asking.filter((a) => {
       const t = vals.find((x) => root.norm(x.address) === a);
       return !!t && !!t.wayland && !(act && root.norm(act.address) === a && root.onScreen(t));
@@ -108,7 +108,7 @@ Singleton {
   }
 
   Connections {
-    target: Hyprland
+    target: Compositor
     function onActiveToplevelChanged() { root.settle(); }
     function onFocusedWorkspaceChanged() { root.settle(); }
     function onRawEvent(event) {

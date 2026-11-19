@@ -4,6 +4,7 @@
 // https://github.com/kbuckleys/
 
 import QtQuick
+import "../compositor"
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
@@ -43,7 +44,8 @@ Collapsible {
   // Through argus, the recorder (argus/argus.lua, loaded by hyprland) rather than a
   // pkill here, so the file is finished and announced the way Super+R does it.
   function stopRecording() {
-    Quickshell.execDetached(["hyprctl", "repl", 'ZenRecord("stop")']);
+    Quickshell.execDetached(Compositor.isWayfire ? ["qs", "ipc", "call", "WayfireCapture", "record", "stop"]
+                                              : ["hyprctl", "repl", 'ZenRecord("stop")']);
   }
 
   Row {

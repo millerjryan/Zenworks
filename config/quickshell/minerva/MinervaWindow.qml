@@ -38,10 +38,10 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "../morpheus/undo"
-import "../morpheus/hypr.js" as Hypr
+import "../compositor/commands.js" as Hypr
 import "../morpheus/controls" as Ctl
 import "../terminus"
 import "minerva.js" as M
@@ -389,7 +389,7 @@ FloatingWindow {
   function setFocus(on) {
     if (on === mw.focusMode) return;
     mw.focusMode = on;
-    Hyprland.dispatch(Hypr.fullscreen());
+    Compositor.dispatch(Hypr.fullscreen());
     if (on) mw.say("Focus mode — f11 or esc to leave");
   }
 

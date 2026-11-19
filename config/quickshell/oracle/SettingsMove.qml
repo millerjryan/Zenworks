@@ -15,6 +15,7 @@
 // ticked — another machine's screens are rarely this one's.
 
 import QtQuick
+import "../compositor"
 import Quickshell
 import Quickshell.Io
 import "oracle.js" as Ora
@@ -30,6 +31,7 @@ Item {
   readonly property string stateDir: Oracle.statePath.replace(/\/[^/]*$/, "")
   function absOf(rel) {
     if (rel === "oracle.json") return Oracle.statePath;
+    if (rel === "hypr/defaults.lua") return Oracle.defaultsPath;
     if (rel.startsWith("hypr/")) return Oracle.hyprLuaDir + "/" + rel.slice(5);
     // a custom theme is the user's (Oracle.themesDir), never the shipped
     // directory: export found none there, and import wrote into it (audit 10-31)
@@ -61,6 +63,7 @@ Item {
       .concat(Oracle.themeOptions.filter((o) => o.custom).map((o) => "themes/" + o.value + ".json"));
     const files = {};
     for (const rel of rels) {
+      if (Compositor.isWayfire && rel.startsWith("hypr/") && rel !== "hypr/defaults.lua") continue;
       // oracle.json from memory: Oracle.save() just before is a write that
       // may not have landed, and the file read back was the one before it
       const t = rel === "oracle.json" ? Oracle.stateText() : move.readText(move.absOf(rel));
@@ -101,6 +104,11 @@ Item {
       if (!b.ok) { move.tell(b.why); return; }
       // a shipped theme of the same name is never replaced (see Ora.bundleThemeWritable)
       for (const rel of Object.keys(b.files)) {
+        if (Compositor.isWayfire && rel.startsWith("hypr/") && rel !== "hypr/defaults.lua") {
+          delete b.files[rel];
+          b.skipped++;
+          continue;
+        }
         if (rel.startsWith("themes/") && !Ora.bundleThemeWritable(move.readText(move.absOf(rel)))) {
           delete b.files[rel];
           b.skipped++;
@@ -160,7 +168,7 @@ Item {
     onTriggered: {
       Oracle.reloadFromDisk();
       Oracle.scanThemes();
-      Quickshell.execDetached(["hyprctl", "reload"]);
+      if (!Compositor.isWayfire) Quickshell.execDetached(["hyprctl", "reload"]);
       if (move.appsCame) restartLater.restart();
     }
   }

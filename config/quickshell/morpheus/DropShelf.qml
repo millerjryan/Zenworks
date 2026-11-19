@@ -39,7 +39,7 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Io
 import Quickshell.Wayland
 import "."
@@ -127,7 +127,7 @@ Item {
   function open(scr, byPointer) {
     if (!shelf.on) return;
     // no screen said (IPC): the one you are on
-    const mon = Hyprland.focusedMonitor;
+    const mon = Compositor.focusedMonitor;
     const here = mon ? Quickshell.screens.find((x) => x.name === mon.name) : null;
     shelf.screen = scr || here || Quickshell.screens[0] || null;
     shelf.pinned = !byPointer;

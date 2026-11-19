@@ -9,7 +9,7 @@
 
 import QtQuick
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "terminus.js" as Terminus
 import "../morpheus/room.js" as Room
@@ -299,7 +299,7 @@ Item {
   }
   Process {
     id: fitProc
-    command: Room.PROBE
+    command: Compositor.bundle("room", Room.PROBE)
     stdout: StdioCollector {
       id: fitOut
       onStreamFinished: {
@@ -314,7 +314,7 @@ Item {
         const win = got.win, mons = got.mons;
         term.fitPending = false;
         const room = Room.make(win, mons, term.splitWant, 16, 560, "right");
-        if (room) Room.dispatches(win.address, room).forEach((d) => Hyprland.dispatch(d));
+        if (room) Compositor.resizeRoom(win.address, room);
         term.splitGrew = grow && room ? room.dw : 0;
         term.viewSaveRef.restart();
       }

@@ -33,7 +33,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Wayland
 import "../morpheus"
 import "../ceres"
@@ -272,7 +272,7 @@ PanelWindow {
   }
   // an app's window, by its title
   function windowUp(title) {
-    return () => Hyprland.toplevels.values.some((t) => t.wayland && t.title === title);
+    return () => Compositor.toplevels.values.some((t) => t.wayland && t.title === title);
   }
   Timer {
     interval: 500
@@ -290,7 +290,7 @@ PanelWindow {
     }
   }
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     windows: [ asst ]
     active: asst.shown
   }

@@ -22,7 +22,7 @@
 
 import QtQuick
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 
 Item {
   id: probe
@@ -38,7 +38,7 @@ Item {
 
   Process {
     id: proc
-    command: ["hyprctl", "-j", "clients"]
+    command: Compositor.query(["hyprctl", "-j", "clients"])
     stdout: StdioCollector {
       id: out
       onStreamFinished: {
@@ -51,7 +51,7 @@ Item {
   // a burst of events (a window opening fires several) is one read
   Timer { id: soon; interval: 120; onTriggered: probe.refresh() }
   Connections {
-    target: Hyprland
+    target: Compositor
     function onRawEvent(ev) {
       const n = ev.name;
       if (n === "changefloatingmode" || n === "fullscreen" || n === "openwindow"

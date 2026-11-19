@@ -21,6 +21,7 @@
 // Loaded by URL from OracleWindow, not named as a type (see ComputerPanel).
 
 import QtQuick
+import "../compositor"
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
@@ -74,7 +75,7 @@ Item {
 
   Process {
     id: clientsProc
-    command: ["hyprctl", "clients", "-j"]
+    command: Compositor.query(["hyprctl", "clients", "-j"])
     stdout: StdioCollector {
       onStreamFinished: {
         let list = [];

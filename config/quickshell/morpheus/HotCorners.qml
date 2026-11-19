@@ -31,8 +31,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
-import "hypr.js" as Hypr
+import "../compositor"
+import "../compositor/commands.js" as Hypr
 import "suite.js" as Suite
 
 Item {
@@ -57,7 +57,7 @@ Item {
       case "hub": Quickshell.execDetached(["qs", "ipc", "call", "Hermes", "toggle"]); break;
       case "notifications": Quickshell.execDetached(["qs", "ipc", "call", "Howler", "toggle"]); break;
       case "lock": Quickshell.execDetached(["qs", "ipc", "call", "Cerberus", "lock"]); break;
-      case "screensOff": Hyprland.dispatch(Hypr.dpms(false)); break;
+      case "screensOff": Compositor.dispatch(Hypr.dpms(false)); break;
       case "background": hot.showBackground(); break;
       case "app": {
         const id = String(hot.apps[corner] || "");
@@ -84,25 +84,25 @@ Item {
   property string leftFrom: ""
   property string wentTo: ""
   function showBackground() {
-    const ws = Hyprland.focusedWorkspace;
+    const ws = Compositor.focusedWorkspace;
     const here = ws ? String(ws.name) : "";
     if (hot.leftFrom !== "" && here === hot.wentTo && ws && ws.toplevels.values.length === 0) {
-      Hyprland.dispatch(Hypr.focusNamedWorkspace(hot.leftFrom));
+      Compositor.dispatch(Hypr.focusNamedWorkspace(hot.leftFrom));
       hot.leftFrom = "";
       hot.wentTo = "";
       return;
     }
     hot.leftFrom = here;
-    Hyprland.dispatch(Hypr.focusWorkspace("empty"));
+    Compositor.dispatch(Hypr.focusWorkspace("empty"));
     // the name it lands on, once Hyprland says (the Connections below): a
     // callLater read the old one, the dispatch being async (audit 11-04)
     hot.wentTo = "";
   }
   Connections {
-    target: Hyprland
+    target: Compositor
     function onFocusedWorkspaceChanged() {
-      if (hot.leftFrom !== "" && hot.wentTo === "" && Hyprland.focusedWorkspace)
-        hot.wentTo = String(Hyprland.focusedWorkspace.name);
+      if (hot.leftFrom !== "" && hot.wentTo === "" && Compositor.focusedWorkspace)
+        hot.wentTo = String(Compositor.focusedWorkspace.name);
     }
   }
 
@@ -116,7 +116,7 @@ Item {
       id: spot
       required property var modelData
       readonly property string corner: spot.modelData.corner
-      readonly property var mon: Hyprland.monitorFor(spot.modelData.screen)
+      readonly property var mon: Compositor.monitorFor(spot.modelData.screen)
       screen: spot.modelData.screen
       color: "transparent"
       WlrLayershell.layer: WlrLayer.Overlay

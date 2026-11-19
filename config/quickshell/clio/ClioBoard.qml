@@ -32,7 +32,7 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Widgets
 import Quickshell.Wayland
 import "../morpheus"
@@ -169,7 +169,7 @@ Variants {
     //
     // Held only while a note is being edited, so the desktop is untouched
     // the rest of the time.
-    HyprlandFocusGrab {
+    CompositorFocusGrab {
       // The menu only while it is up, as zeus and icarus list theirs: its
       // surface does not exist until it opens, and a grab handed a window
       // with no surface never covers it — so a click on a menu row counted

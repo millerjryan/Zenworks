@@ -41,7 +41,7 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "../morpheus/controls" as Ctl
 import "../terminus"
@@ -88,7 +88,7 @@ FloatingWindow {
   // terminus' thawPulse and SelectBar)
   property int thawPulse: 0
   Connections {
-    target: Hyprland
+    target: Compositor
     function onFocusedWorkspaceChanged() { win.thawPulse++; }
   }
 

@@ -5,14 +5,13 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Services.SystemTray
 import "../oracle"
 import "."
 // qualified, for HeldRing alone
 import "../terminus" as Term
-import "offspecial.js" as Off
-import "hypr.js" as Hypr
+import "../compositor/commands.js" as Hypr
 
 Item {
   id: root
@@ -36,7 +35,7 @@ Item {
   readonly property int blinkOut: 120
 
   readonly property var specialWorkspace: {
-    var values = Hyprland.workspaces.values;
+    var values = Compositor.workspaces.values;
     for (var i = 0; i < values.length; i++) {
       if (String(values[i].name).startsWith("special:")) return values[i];
     }
@@ -48,7 +47,7 @@ Item {
   // lit this one's mark too (audit 2026-11-07)
   property var _activeSpecials: ({})
   readonly property string _activeSpecialName: {
-    const m = Hyprland.focusedMonitor;
+    const m = Compositor.focusedMonitor;
     return m ? (root._activeSpecials[m.name] || "") : "";
   }
   // THE SYSTEM BELL (a terminal's BEL; Hyprland 0.57's socket2 `bell>>addr`):
@@ -61,13 +60,13 @@ Item {
     const norm = (a) => String(a || "").toLowerCase().replace(/^0x/, "");
     const a = norm(data);
     if (a === "") return;
-    const tl = Hyprland.toplevels.values.find((t) => norm(t.address) === a);
+    const tl = Compositor.toplevels.values.find((t) => norm(t.address) === a);
     if (!tl || !tl.workspace || tl.workspace.focused) return;
     root.bellWorkspace = tl.workspace;
     root.bellSeq++;
   }
   Connections {
-    target: Hyprland
+    target: Compositor
     function onRawEvent(event) {
       if (event.name === "activespecial") {
         const parts = String(event.data).split(",");
@@ -84,7 +83,7 @@ Item {
     if (root.specialWorkspace === null) return false;
     if (root._activeSpecialName !== "") return true;
     try {
-      const fw = Hyprland.focusedWorkspace;
+      const fw = Compositor.focusedWorkspace;
       if (fw && String(fw.name).startsWith("special:")) return true;
     } catch (e) {}
     const sw = root.specialWorkspace;
@@ -103,7 +102,7 @@ Item {
   // one (Hyprland marks only unfocused windows; focusing it clears it).
   // A suite window asked for again elsewhere is marked by the shell
   // (morpheus/Attention: Hyprland has no way to be told), and asks the same.
-  readonly property bool numberUrgent: Hyprland.workspaces.values.some(w =>
+  readonly property bool numberUrgent: Compositor.workspaces.values.some(w =>
     (w.urgent === true || Attention.lit(w)) && !String(w.name).startsWith("special:"))
   readonly property bool specialUrgent: root.specialWorkspace !== null
     && (root.specialWorkspace.urgent === true || Attention.lit(root.specialWorkspace)
@@ -189,11 +188,11 @@ Item {
         ? root.specialWorkspace.name.replace(/^special:/, "")
         : root.specialName;
     // asked for: OffSpecial leaves a show it was told about alone
-    Quickshell.execDetached(Off.wanted(Hypr.toggleSpecial(sp)));
+    Quickshell.execDetached(Compositor.wanted(Hypr.toggleSpecial(sp)));
   }
   function clickNumber(ws, isActive) {
     if (root.specialWorkspace !== null && (root.specialFocused || isActive)) root.toggleSpecial();
-    if (!isActive) Hyprland.dispatch(Hypr.focusNamedWorkspace(ws.name));
+    if (!isActive) Compositor.dispatch(Hypr.focusNamedWorkspace(ws.name));
   }
   MouseArea {
     anchors.fill: parent
@@ -267,7 +266,7 @@ Item {
         // BY NUMBER (user, 2026-10-27: "the order is inverted"): Hyprland's
         // list is in the order the workspaces were made, so a 2 opened before
         // a 1 came first. Sorted as the workspace strip sorts them.
-        model: Hyprland.workspaces.values.slice().sort((a, b) => a.id - b.id)
+        model: Compositor.workspaces.values.filter(w => !Compositor.isWayfire || (Compositor.focusedMonitor && w.monitorID === Compositor.focusedMonitor.id)).sort((a, b) => a.id - b.id)
 
         delegate: Collapsible {
           id: btn

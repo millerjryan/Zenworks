@@ -31,7 +31,7 @@
 // Wayland handle alive, and every arm asks Hyprland for the list afresh.
 
 import QtQuick
-import Quickshell.Hyprland
+import "../compositor"
 
 Timer {
   id: dog
@@ -45,7 +45,7 @@ Timer {
 
   // Qt's word, and Hyprland's: shown is both
   readonly property bool qtShown: !!dog.owner && dog.owner.shown
-  readonly property bool mapped: Hyprland.toplevels.values.some((t) => t.title === dog.tag
+  readonly property bool mapped: Compositor.toplevels.values.some((t) => t.title === dog.tag
     && !!t.wayland && t.wayland.appId === "org.quickshell")
   readonly property bool shown: dog.qtShown && dog.mapped
   // shown to Qt, not on screen: since when (0 when it is not)
@@ -56,7 +56,7 @@ Timer {
 
   property bool rebuilding: false
   function arm(args) {
-    Hyprland.refreshToplevels();
+    Compositor.refreshToplevels();
     // a press of yours gets its one rebuild; the rebuild's own re-open does not
     if (!dog.rebuilding) dog.rebuilt = false;
     dog.asked = args;
@@ -76,7 +76,7 @@ Timer {
     if (dog.asked === null || dog.shown) { dog.asked = null; return; }
     if (dog.ghost && !dog.waited) { dog.waited = true; dog.restart(); return; }
     const w = mgr.alive() ? mgr.win : null;
-    const m = Hyprland.focusedMonitor;
+    const m = Compositor.focusedMonitor;
     console.warn(dog.tag + ": asked to open, not on screen after "
       + ((Date.now() - dog.armedAt) / 1000).toFixed(1) + " s —"
       + " comp " + (mgr.comp ? mgr.comp.status : "none")

@@ -19,7 +19,7 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Wayland
 import "../oracle"
 import "."
@@ -82,7 +82,7 @@ PanelWindow {
   implicitHeight: card.height + (Zenon.menuShadowPad + strip.popRoom) * 2
 
   Connections {
-    target: Hyprland
+    target: Compositor
     function onRawEvent(event) {
       if (event.name !== "workspacev2" || !Oracle.workspaceStrip) return;
       const id = parseInt(String(event.data).split(",")[0]);
@@ -94,9 +94,9 @@ PanelWindow {
 
   // this screen's workspaces, in number order: [{ ws, apps: [glyph] }]
   readonly property var tiles: {
-    const mon = Hyprland.focusedMonitor;
-    const tops = Hyprland.toplevels.values;
-    return Hyprland.workspaces.values
+    const mon = Compositor.focusedMonitor;
+    const tops = Compositor.toplevels.values;
+    return Compositor.workspaces.values
       .filter((w) => w.id > 0 && (!mon || w.monitor === mon))
       .sort((a, b) => a.id - b.id)
       .map((w) => ({
@@ -141,7 +141,7 @@ PanelWindow {
           delegate: Rectangle {
             id: tile
             required property var modelData
-            readonly property bool lit: tile.modelData.ws === Hyprland.focusedWorkspace
+            readonly property bool lit: tile.modelData.ws === Compositor.focusedWorkspace
             width: strip.tileW
             height: num.implicitHeight + apps.implicitHeight + 22
             radius: Zenon.radiusCard

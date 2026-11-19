@@ -28,7 +28,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import QtQuick.Effects
 import Qt.labs.folderlistmodel
 import "../morpheus"
@@ -3552,7 +3552,7 @@ FloatingWindow {
   // rest of this shell already asks it.
   property int thawPulse: 0
   Connections {
-    target: Hyprland
+    target: Compositor
     function onFocusedWorkspaceChanged() { root.thawPulse++; }
   }
 

@@ -26,6 +26,7 @@
 pragma Singleton
 
 import QtQuick
+import "../compositor"
 import Quickshell
 import Quickshell.Io
 
@@ -37,13 +38,14 @@ Singleton {
   property bool again: false
 
   function read() {
+    if (Compositor.isWayfire) return;
     if (proc.running) { root.again = true; return; }
     proc.running = true;
   }
 
   Process {
     id: proc
-    command: ["hyprctl", "devices", "-j"]
+    command: Compositor.query(["hyprctl", "devices", "-j"])
     stdout: StdioCollector {
       id: out
       onStreamFinished: {

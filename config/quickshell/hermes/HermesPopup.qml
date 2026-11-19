@@ -27,7 +27,7 @@
 
 import QtQuick
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "../morpheus/gridnav.js" as Nav
 import "../terminus"
@@ -67,7 +67,7 @@ LayerPopup {
 
   focusable: true
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     windows: [ popup ]
     active: popup.shown
     onCleared: popup.closePopup()

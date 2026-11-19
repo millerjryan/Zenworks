@@ -33,7 +33,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Networking
 import Quickshell.Bluetooth
 import "../morpheus"
@@ -438,7 +438,7 @@ Singleton {
   property bool ddcRead: false
   Timer { id: ddcSoon; interval: Zenon.slow + 250; onTriggered: root.readDdc() }
   Connections {
-    target: Hyprland
+    target: Compositor
     function onRawEvent(event) {
       if (event.name === "monitoradded" || event.name === "monitorremoved"
           || event.name === "monitoraddedv2" || event.name === "monitorremovedv2") root.ddcRead = false;
@@ -492,13 +492,19 @@ Singleton {
   property bool nightSun: false
   property int kelvin: H.KELVIN_DEFAULT
   readonly property bool nightWanted: H.nightWanted(root.nightOn, root.nightSun, Zenon.daylight)
-  readonly property bool nightActive: root.nightWanted && root.probe.display.hyprsunset
+  readonly property bool nightActive: !Compositor.isWayfire && root.nightWanted && root.probe.display.hyprsunset
   // a hand on the switch takes over from the sun either way: off at night
   // kept the schedule, which went on wanting it, and nothing changed
   // (audit 2026-10-28d)
-  function setNight(on) { root.nightOn = on; root.nightSun = false; root.save(); }
+  function setNight(on) {
+    if (Compositor.isWayfire) { Compositor.unavailable("Hyprsunset night light; use wlsunset in Wayfire autostart instead"); return; }
+    root.nightOn = on; root.nightSun = false; root.save();
+  }
   function toggleNight() { root.setNight(!root.nightWanted); }
-  function setNightSun(on) { root.nightSun = on; root.save(); }
+  function setNightSun(on) {
+    if (Compositor.isWayfire) { Compositor.unavailable("Hyprsunset scheduling; use wlsunset in Wayfire autostart instead"); return; }
+    root.nightSun = on; root.save();
+  }
   function setKelvin(k) {
     root.kelvin = H.clampKelvin(k);
     root.save();
@@ -508,7 +514,7 @@ Singleton {
   // shell that dies takes the tint with it rather than leaving it stuck
   Process {
     id: sunset
-    running: root.nightActive && !root.sim
+    running: !Compositor.isWayfire && root.nightActive && !root.sim
     command: Paths.tether(["hyprsunset", "-t", String(root.kelvin)])
   }
   // a new warmth while it runs: through its own socket, not a restart
@@ -527,13 +533,19 @@ Singleton {
   property string filter: ""
   property bool filterFocus: false
   property bool focusQuiet: false
-  readonly property string filterWorn: H.filterWorn(root.filter, root.filterFocus, root.focusQuiet)
+  readonly property string filterWorn: Compositor.isWayfire ? "" : H.filterWorn(root.filter, root.filterFocus, root.focusQuiet)
   // the filter's shader and filter.lua are yours (~/.config/zenworks/hypr);
   // zoom.frag, the shape every filter is made from, ships with the config
   readonly property string hyprDir: Oracle.zenworksDir + "/hypr"
   readonly property string hyprShippedDir: Oracle.hyprShippedDir
-  function setFilter(id) { root.filter = id; root.save(); }
-  function setFilterFocus(on) { root.filterFocus = on; root.save(); }
+  function setFilter(id) {
+    if (Compositor.isWayfire) { Compositor.unavailable("Hyprland color filters"); return; }
+    root.filter = id; root.save();
+  }
+  function setFilterFocus(on) {
+    if (Compositor.isWayfire) { Compositor.unavailable("Hyprland color filters"); return; }
+    root.filterFocus = on; root.save();
+  }
   property string _filterApplied: "?"
   onFilterWornChanged: filterApply.restart()
   // a beat, so a quiet that flickers with a timer is one change
@@ -550,6 +562,7 @@ Singleton {
   }
   AtomicWriter { id: filterWriter; tag: "hermes-filter" }
   function applyFilter() {
+    if (Compositor.isWayfire) return;
     const id = root.filterWorn;
     if (id === root._filterApplied || root.sim) return;
     root._filterApplied = id;

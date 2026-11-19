@@ -5,7 +5,7 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import "."
 
 // THE SYSTEM TRAY'S MENU, which is a CardMenu like every other menu here.
@@ -211,7 +211,7 @@ CardMenu {
     return out;
   }
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     windows: root.grabWindows
     active: root.open && !root.isSubMenu
     onCleared: root.closeMenu()

@@ -19,6 +19,7 @@
 pragma Singleton
 
 import QtQuick
+import "../compositor"
 import QtQml.Models
 import Quickshell
 import Quickshell.Io
@@ -264,7 +265,7 @@ Singleton {
 
   Process {
     id: cursorProc
-    command: ["hyprctl", "cursorpos"]
+    command: Compositor.query(["hyprctl", "cursorpos"])
     stdout: StdioCollector {
       id: cursorOut
       waitForEnd: true

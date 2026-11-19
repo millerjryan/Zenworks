@@ -12,7 +12,7 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Io
 import "../morpheus"
 import "../terminus"
@@ -209,13 +209,13 @@ FloatingWindow {
   // used last and focus that one (PlatoManager.open).
   property string hyprAddress: ""
   function noteAddress() {
-    const t = Hyprland.activeToplevel;
+    const t = Compositor.activeToplevel;
     if (!win.focused || !t || t.title !== win.title) return;
     const a = String(t.address || "").replace(/^0x/, "");
     if (a !== "") win.hyprAddress = "0x" + a;
   }
   Connections {
-    target: Hyprland
+    target: Compositor
     function onActiveToplevelChanged() { win.noteAddress(); }
   }
   function raise() { Attention.raise(win.title, win.hyprAddress); }

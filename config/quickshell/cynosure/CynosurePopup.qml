@@ -37,7 +37,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Services.Pipewire
 // a library; its markup escaping is morpheus Strings'
 import "cynosure.js" as Cynosure
@@ -46,10 +46,9 @@ import "metis/metis.js" as Metis
 import "answers.js" as Answers
 import "../chronos/weather.js" as Wx
 import "../chronos/chronos.js" as Chr
-import "../morpheus/hypr.js" as Hypr
+import "../compositor/commands.js" as Hypr
 import "../morpheus/runjob.js" as RunJob
 import "../oracle/oracle.js" as Ora
-import "../morpheus/offspecial.js" as Off
 import "../terminus/terminus.js" as Terminus
 import "../terminus/network.js" as TermNet
 import "../artemis/artemis.js" as Artemis
@@ -370,7 +369,7 @@ LayerPopup {
     NumberAnimation { duration: Zenon.slow; easing.type: Zenon.ease }
   }
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     id: grab
     // the actions card is its own surface: a press on it is not a press away
     windows: actionsMenu.visible ? [ popup, actionsMenu ] : [ popup ]
@@ -539,6 +538,7 @@ LayerPopup {
     path: Cynosure.hotkeysPath()
     onDone: (text) => {
       popup.hotkeys = Cynosure.parseHotkeys(text);
+      if (Compositor.isWayfire) return;
       // a list that came by Oracle's Import reaches hyprland too: the
       // binds are written again when they are not what the list says
       hotkeysLuaFile.reload();
@@ -553,7 +553,7 @@ LayerPopup {
   property var liveBinds: []
   Process {
     id: liveBindsProc
-    command: ["hyprctl", "binds", "-j"]
+    command: Compositor.query(["hyprctl", "binds", "-j"])
     stdout: StdioCollector {
       id: liveBindsOut
       onStreamFinished: {
@@ -562,6 +562,7 @@ LayerPopup {
     }
   }
   function askHotkey(row) {
+    if (Compositor.isWayfire) { Compositor.unavailable("Launcher hotkeys; add command bindings to wayfire.ini instead"); return; }
     popup.hotkeyRow = row;
     popup.aliasNote = "";
     popup.aliasWas = popup.query;
@@ -569,7 +570,7 @@ LayerPopup {
     popup.setLine("");
     input.readOnly = true;
     if (!liveBindsProc.running) liveBindsProc.running = true;
-    Hyprland.dispatch(Hypr.submap("oracle-keys"));
+    Compositor.dispatch(Hypr.submap("oracle-keys"));
     hotkeyTimeout.restart();
     Qt.callLater(() => input.forceActiveFocus());
   }
@@ -617,12 +618,12 @@ LayerPopup {
   Timer {
     id: hyprReload
     interval: 150
-    onTriggered: Quickshell.execDetached(["hyprctl", "reload"])
+    onTriggered: if (!Compositor.isWayfire) Quickshell.execDetached(["hyprctl", "reload"])
   }
   function endHotkey() {
     if (popup.mode !== "hotkey") return;
     hotkeyTimeout.stop();
-    Hyprland.dispatch(Hypr.submap("reset"));
+    Compositor.dispatch(Hypr.submap("reset"));
     popup.hotkeyRow = null;
     popup.aliasNote = "";
     input.readOnly = false;
@@ -1166,7 +1167,7 @@ LayerPopup {
     id: snapProc
     property var job: null
     property var queue: []
-    readonly property var snapCmd: ["sh", "-c", "hyprctl monitors -j; printf '\\036'; hyprctl clients -j; printf '\\036'; hyprctl getoption general:gaps_out -j"]
+    readonly property var snapCmd: Compositor.bundle("snap", ["sh", "-c", "hyprctl monitors -j; printf '\\036'; hyprctl clients -j; printf '\\036'; hyprctl getoption general:gaps_out -j"])
     onExited: RunJob.next(snapProc)
     stdout: StdioCollector {
       id: snapOut
@@ -1223,8 +1224,8 @@ LayerPopup {
   // the windows whose app id `want(appId)` takes, each closed as its close
   // button would
   function closeWindowsOf(want) {
-    for (const t of Hyprland.toplevels.values)
-      if (t.wayland && want(String(t.wayland.appId || ""))) Hyprland.dispatch(Hypr.closeWindow(Hypr.byAddress(t.address)));
+    for (const t of Compositor.toplevels.values)
+      if (t.wayland && want(String(t.wayland.appId || ""))) Compositor.dispatch(Hypr.closeWindow(Hypr.byAddress(t.address)));
   }
   // every removable drive's partitions unmounted, then the drive powered
   // off; what it did said in a toast
@@ -1330,9 +1331,13 @@ LayerPopup {
   // each run with its own job, in turn (audit 2026-11-09): the flags were
   // the process's, and a save asked while a place ran (or its re-run after
   // the launches) turned one into the other, and the new ask was dropped
-  readonly property var layoutCmd: ["sh", "-c", "hyprctl clients -j; printf '\\036'; hyprctl activeworkspace -j"]
-  function saveLayout(name) { RunJob.queued(layoutProc, { saving: name, using: "", launch: false, command: popup.layoutCmd }); }
+  readonly property var layoutCmd: Compositor.bundle("layout", ["sh", "-c", "hyprctl clients -j; printf '\\036'; hyprctl activeworkspace -j"])
+  function saveLayout(name) {
+    if (Compositor.isWayfire) { Compositor.unavailable("Launcher layout presets; use native Wayfire tiling"); return; }
+    RunJob.queued(layoutProc, { saving: name, using: "", launch: false, command: popup.layoutCmd });
+  }
   function useLayout(name, launch) {
+    if (Compositor.isWayfire) { Compositor.unavailable("Launcher layout presets; use native Wayfire tiling"); return; }
     RunJob.queued(layoutProc, { saving: "", using: name, launch: launch !== false, command: popup.layoutCmd });
   }
   Process {
@@ -1371,7 +1376,7 @@ LayerPopup {
           else if (c.floating) steps.push(Hypr.floatOff());
         }
         if (here) steps.push(Hypr.focusWorkspace(String(here.name)));
-        if (steps.length > 0) Quickshell.execDetached(Off.wanted(steps));
+        if (steps.length > 0) Quickshell.execDetached(Compositor.wanted(steps));
         // the apps not open: opened once, then placed when they have come up
         if (job.launch && missing.length > 0) {
           const seen = {};
@@ -1462,7 +1467,7 @@ LayerPopup {
   property var snapWas: ({})
   // the window "left half" will move: the one you were in
   function lastWindowName() {
-    const t = Hyprland.activeToplevel;
+    const t = Compositor.activeToplevel;
     return t ? String(t.title || "") : "No window";
   }
   function snapWindow(address, where, size) {
@@ -1472,6 +1477,7 @@ LayerPopup {
       popup.dispatchLater(steps.concat([Hypr.moveToMonitor(where === "next" ? "+1" : "-1")]));
       return;
     }
+    if (Compositor.isWayfire) { Compositor.unavailable("Launcher snapping; use Super+Ctrl+Left/Right or Super+Z"); return; }
     RunJob.queued(snapProc, { command: snapProc.snapCmd, address, where, size: size || null });
     popup.closeCynosure();
   }
@@ -2335,7 +2341,7 @@ LayerPopup {
       else if (c.act === "next") p.next(); else p.previous();
       break;
     }
-    case "workspace": Hyprland.dispatch(Hypr.focusWorkspace(String(c.n))); break;
+    case "workspace": Compositor.dispatch(Hypr.focusWorkspace(String(c.n))); break;
     case "timer": {
       const m = c.minutes > 0 ? c.minutes : Chronos.defaultMinutes;
       if (Chronos.add(c.label, m)) Chronos.toggle(Chronos.timers.length - 1);
@@ -2361,7 +2367,7 @@ LayerPopup {
       else Oracle.set("theme", to);
       break;
     }
-    case "desktop": Hyprland.dispatch(Hypr.focusWorkspace("empty")); break;
+    case "desktop": Compositor.dispatch(Hypr.focusWorkspace("empty")); break;
     case "newContact":
       Quickshell.execDetached(["sh", "-c", "python3 -I \"$1\" add \"$2\" \"$3\" \"$4\" >/dev/null && notify-send -a Cynosure -- 'Contact saved' \"$2\"",
         "cynosure", Quickshell.shellDir + "/cynosure/bin/contacts.py", c.name, c.email, c.phone]);
@@ -2466,9 +2472,9 @@ LayerPopup {
   }
   readonly property string winLine: popup.winsScoped ? popup.query.replace(/^\s*win\s+/i, "") : popup.query
   function openWindows() {
-    const active = Hyprland.activeToplevel;
+    const active = Compositor.activeToplevel;
     const hereWs = popup.hereWorkspace();
-    return Hyprland.toplevels.values.filter((t) => t.wayland).map((t) => {
+    return Compositor.toplevels.values.filter((t) => t.wayland).map((t) => {
       const app = String(t.wayland.appId || "");
       return { address: t.address, title: String(t.title || ""), app,
         // the suite's own windows share quickshell's app id
@@ -2478,17 +2484,18 @@ LayerPopup {
     });
   }
   Connections {
-    target: Hyprland.toplevels
+    target: Compositor.toplevels
     function onValuesChanged() { if (popup.shown) popup.applyFilter(); }
   }
   function hereWorkspace() {
-    const m = Hyprland.focusedMonitor;
+    const m = Compositor.focusedMonitor;
     return m && m.activeWorkspace ? String(m.activeWorkspace.name) : "";
   }
   // the window actions (float, center, fullscreen, move here) act on the
   // active window, so the one meant is focused first; "move here" is read
   // before that focus can take the workspace with it
   function windowDo(address, what) {
+    if (Compositor.isWayfire && what === "float") { Compositor.unavailable("Launcher floating toggle; use Super+F"); return; }
     const sel = Hypr.byAddress(address);
     const ws = popup.hereWorkspace();
     const then = what === "here" ? (ws !== "" ? Hypr.moveToWorkspace(ws) : "")
@@ -2503,10 +2510,10 @@ LayerPopup {
   // while it still held it, the window was never focused and the rest went
   // nowhere (user, 2026-11-04: "don't do anything")
   function dispatchLater(steps, seconds) {
-    Quickshell.execDetached(["sh", "-c", "sleep " + (seconds || 0.25) + "; exec \"$@\"", "cynosure"].concat(Off.wanted(steps)));
+    Quickshell.execDetached(["sh", "-c", "sleep " + (seconds || 0.25) + "; exec \"$@\"", "cynosure"].concat(Compositor.wanted(steps)));
   }
   function goToWindow(address) {
-    Quickshell.execDetached(Off.wanted([Hypr.focusWindow(Hypr.byAddress(address)),
+    Quickshell.execDetached(Compositor.wanted([Hypr.focusWindow(Hypr.byAddress(address)),
                                         Hypr.raiseWindow(Hypr.byAddress(address))]));
     popup.closeCynosure();
   }
@@ -3786,6 +3793,10 @@ LayerPopup {
       ? Object.assign({}, r, { hotkey: popup.chordWords(Cynosure.hotkeyOf(popup.hotkeys, r)),
           favorite: favAt >= 0, favAt, favCount: popup.favorites.length }) : r);
     if (rows.length === 0) return;
+    if (Compositor.isWayfire) {
+      for (const row of rows)
+        if (row.id === "winFloat") row.text = "Toggle floating (use Super+F)";
+    }
     // a file goes out through the suite's one Share menu (morpheus Share),
     // before Move to the trash
     if (r.kind === "file" && !r.isDir) {
@@ -3907,7 +3918,7 @@ LayerPopup {
     case "winCenter": popup.windowDo(r.address, "center"); return;
     case "winFull": popup.windowDo(r.address, "full"); return;
     case "closeWin":
-      Hyprland.dispatch(Hypr.closeWindow(Hypr.byAddress(r.address)));
+      Compositor.dispatch(Hypr.closeWindow(Hypr.byAddress(r.address)));
       return;
     case "copyUrl": popup.copyText(r.url || r.uri); return;
     case "dropLink":

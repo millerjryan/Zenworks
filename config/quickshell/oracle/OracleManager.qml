@@ -17,7 +17,7 @@
 // come in through the window's own `import "."`.
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Io
 import "../morpheus"
 import "../ceres"
@@ -193,7 +193,7 @@ Scope {
   // The window oracle is in has the keyboard: the one case where a toggle
   // means "put it away". Open but elsewhere, a toggle brings it here.
   readonly property bool focused: {
-    const t = Hyprland.activeToplevel;
+    const t = Compositor.activeToplevel;
     return mgr.shown && !!t && t.title === "oracle";
   }
 

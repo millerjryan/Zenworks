@@ -9,6 +9,7 @@
 // sunrise, and how warm.
 
 import QtQuick
+import "../compositor"
 import "../morpheus"
 import "../morpheus/controls" as Ctl
 import "../terminus"
@@ -86,8 +87,9 @@ Column {
 
   HermesCard {
     glyph: H.G.night
+    enabled: !Compositor.isWayfire
     glyphInk: Hermes.nightActive ? Zenon.yellow : Zenon.accentMuted
-    title: "Night light"
+    title: Compositor.isWayfire ? "Night light (use wlsunset in Wayfire autostart)" : "Night light"
     note: !Hermes.probe.display.hyprsunset ? "" : Hermes.nightActive ? "On · " + H.kelvinWords(Hermes.kelvin)
       : Hermes.nightSun ? "Waiting for sunset" : "Off"
     trailing: [
@@ -146,8 +148,9 @@ Column {
 
   HermesCard {
     glyph: H.G.filter
+    enabled: !Compositor.isWayfire
     glyphInk: Hermes.filterWorn !== "" ? Zenon.accent : Zenon.accentMuted
-    title: "Color filter"
+    title: Compositor.isWayfire ? "Color filter (Hyprland only)" : "Color filter"
     note: Hermes.filterWorn === "" ? "Off"
       : H.filterLabel(Hermes.filterWorn) + (Hermes.filter === "" ? " while quiet" : "")
     Item {

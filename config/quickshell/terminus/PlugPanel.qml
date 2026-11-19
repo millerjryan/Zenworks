@@ -28,7 +28,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "terminus.js" as Terminus
 
@@ -279,7 +279,7 @@ LayerPopup {
   focusable: popup.engaged
   mask: Region { x: panel.x; y: panel.y; width: panel.width; height: panel.height }
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     windows: [ popup ]
     active: popup.engaged && popup.open
     onCleared: popup.dismiss()

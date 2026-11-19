@@ -27,12 +27,12 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Wayland
 import "../morpheus"
 import "../oracle"
 import "kairos.js" as K
-import "../morpheus/hypr.js" as Hypr
+import "../compositor/commands.js" as Hypr
 
 Singleton {
   id: root
@@ -60,7 +60,7 @@ Singleton {
   property string focusTitle: ""
   readonly property string current: K.appKey(root.focusClass, root.focusTitle)
   Connections {
-    target: Hyprland
+    target: Compositor
     function onRawEvent(ev) {
       if (ev.name !== "activewindow") return;
       const d = String(ev.data);
@@ -71,7 +71,7 @@ Singleton {
   }
   Process {
     running: true
-    command: ["hyprctl", "activewindow", "-j"]
+    command: Compositor.query(["hyprctl", "activewindow", "-j"])
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.firstFocus(text)
@@ -250,13 +250,13 @@ Singleton {
     const now = Date.now();
     const s = Object.assign({}, root.seen);
     for (const key in root.rules.autoQuit) {
-      const wins = Hyprland.toplevels.values.filter((t) => t.wayland
+      const wins = Compositor.toplevels.values.filter((t) => t.wayland
         && K.appKey(t.wayland.appId, t.title) === key);
       if (wins.length === 0) { delete s[key]; continue; }
       // in front now: seen now
       if (!s[key] || key === root.current) { s[key] = now; continue; }
       if (!K.quitDue(root.rules.autoQuit[key], s[key], now, key === root.current)) continue;
-      for (const t of wins) Hyprland.dispatch(Hypr.closeWindow(Hypr.byAddress(t.address)));
+      for (const t of wins) Compositor.dispatch(Hypr.closeWindow(Hypr.byAddress(t.address)));
       delete s[key];
       root.say("Quit " + root.nameOf(key), "Unused for " + K.limitWords(root.rules.autoQuit[key]) + ".", "low");
     }

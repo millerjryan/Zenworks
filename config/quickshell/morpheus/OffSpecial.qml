@@ -44,7 +44,7 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 
 Item {
   id: off
@@ -77,11 +77,13 @@ Item {
     + "end))\n"
     + "_G.zenOffSpecial = z\n"
 
-  function arm() { Quickshell.execDetached(["hyprctl", "-q", "eval", off.install]); }
+  function arm() {
+    if (!Compositor.isWayfire) Quickshell.execDetached(["hyprctl", "-q", "eval", off.install]);
+  }
   Component.onCompleted: off.arm()
 
   Connections {
-    target: Hyprland
+    target: Compositor
     // a config reload may drop runtime hooks
     function onRawEvent(ev) { if (ev.name === "configreloaded") off.arm(); }
   }

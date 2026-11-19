@@ -47,6 +47,7 @@
 // never in the shot.
 
 import QtQuick
+import "../compositor"
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -123,9 +124,9 @@ Scope {
   Process {
     id: askProc
     // and the decoration settings a window shot draws its shadow from
-    command: ["sh", "-c", "hyprctl -j monitors; echo '@@'; hyprctl -j clients; echo '@@'; hyprctl -j activewindow; "
+    command: Compositor.bundle("capture", ["sh", "-c", "hyprctl -j monitors; echo '@@'; hyprctl -j clients; echo '@@'; hyprctl -j activewindow; "
       + "echo '@@'; printf '['; sep=; for o in " + Cap.SHADOW_OPTIONS.join(" ")
-      + "; do printf \"$sep\"; hyprctl -j getoption \"$o\"; sep=,; done; printf ']'"]
+      + "; do printf \"$sep\"; hyprctl -j getoption \"$o\"; sep=,; done; printf ']'"])
     stdout: StdioCollector {
       id: askOut
       onStreamFinished: cap.answered(String(askOut.text || ""))
@@ -166,6 +167,11 @@ Scope {
     // `window-plain` keeps the rounding and leaves the shadow out.
     if (mode === "window") {
       if (!active || !active.at || !active.size) { cap.busy = false; return; }
+      if (Compositor.isWayfire) {
+        const geo = active.at[0] + "," + active.at[1] + " " + active.size[0] + "x" + active.size[1];
+        cap.run("mkdir -p " + cap.sh(Picasso.shotDir) + " && grim -g " + cap.sh(geo) + " " + cap.sh(file), file);
+        return;
+      }
       const wm = mons.find(m => m.id === active.monitor) || mon;
       const s = wm.scale > 0 ? wm.scale : 1;
       cap.run(Cap.windowShotCommand({

@@ -11,6 +11,7 @@
 pragma Singleton
 
 import QtQuick
+import "../compositor"
 import Quickshell
 import Quickshell.Io
 import "../morpheus"
@@ -104,6 +105,7 @@ Singleton {
   // hyprland is told to stop drawing it for the moment of the capture
   // instead. Through eval: the lua config refuses `hyprctl keyword`.
   function cursorCmd(visible) {
+    if (Compositor.isWayfire) return ":"; // grim omits the cursor without compositor overrides.
     return "hyprctl -q eval 'hl.config({ cursor = { invisible = " + (visible ? "false" : "true") + " } })'";
   }
   function showCursor(visible) { Quickshell.execDetached(["sh", "-c", root.cursorCmd(visible)]); }

@@ -38,7 +38,7 @@
 
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
+import "../compositor"
 import "."
 import "oracle.js" as Ora
 import "../morpheus"
@@ -532,7 +532,7 @@ FloatingWindow {
     return out;
   }
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     id: grab
     windows: popup.grabWindows
     active: popup.shown && popup.enumKey !== ""

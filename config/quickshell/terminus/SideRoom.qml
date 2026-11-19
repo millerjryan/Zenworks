@@ -37,7 +37,7 @@
 
 import QtQuick
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus/room.js" as Room
 
 Item {
@@ -124,7 +124,7 @@ Item {
   }
   Process {
     id: proc
-    command: Room.PROBE
+    command: Compositor.bundle("room", Room.PROBE)
     stdout: StdioCollector {
       id: out
       onStreamFinished: {
@@ -142,7 +142,7 @@ Item {
         if (!r) room.release();
         else {
           room.target = w.size[0] + r.dw;
-          Room.dispatches(w.address, r).forEach((d) => Hyprland.dispatch(d));
+          Compositor.resizeRoom(w.address, r);
         }
         room.grew = room.forShown && r ? r.dw : 0;
       }

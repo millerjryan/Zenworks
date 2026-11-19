@@ -41,7 +41,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import "lagnotes.js" as LagNotes
 import "../oracle"
 
@@ -89,7 +89,7 @@ Item {
   // a reload starts this over, and activewindow only fires on the next
   // change: the title is all a toplevel is sure to carry until then
   Component.onCompleted: {
-    const t = Hyprland.activeToplevel;
+    const t = Compositor.activeToplevel;
     if (t && t.title) lag.focusedIn = t.title;
     // a live reload builds this again long after the launch: only a real
     // start can say what the shell settles at
@@ -106,7 +106,7 @@ Item {
     lag.saw(lag.openLayer !== "" ? "open " + lag.openLayer : "close");
   }
   Connections {
-    target: Hyprland
+    target: Compositor
     function onRawEvent(ev) {
       if (ev.name === "openwindow") {
         // ADDRESS,WORKSPACE,CLASS,TITLE — the class is enough to know it

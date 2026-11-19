@@ -19,7 +19,7 @@ import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "compositor"
 import Quickshell.Wayland
 import "morpheus"
 import "cynosure"
@@ -181,7 +181,11 @@ ShellRoot {
   // the very first start's setup assistant, ending on the sheet (ZshSetup)
   SetupAssistant { screen: root.focusedScreen }
   // Super+Tab held: every window, a picture each (binds.lua's cycle)
-  WindowSwitcher { screen: root.focusedScreen }
+  Loader {
+    active: !Compositor.isWayfire
+    source: "morpheus/WindowSwitcher.qml"
+    onLoaded: item.screen = Qt.binding(() => root.focusedScreen)
+  }
   // a moment of this screen's workspaces on every switch (Oracle › Windows)
   WorkspaceStrip { screen: root.focusedScreen }
   HowlerPopup { id: howler; statusbar: bar; screen: root.focusedScreen; morphMode: root.morphedFor("howler") && root.morphOnPill; morphFade: root.layerFade }
@@ -463,7 +467,7 @@ ShellRoot {
     // window, and then the focused monitor is right by definition.
     if (icarusDesktop && icarusDesktop.pointerScreen)
       return icarusDesktop.pointerScreen;
-    const m = Hyprland.focusedMonitor;
+    const m = Compositor.focusedMonitor;
     if (!m || !m.name) return statusScreen;
     const screens = Quickshell.screens;
     for (let i = 0; i < screens.length; ++i)
@@ -475,7 +479,7 @@ ShellRoot {
   // attachment and would let a foreign-monitor spawn morph the morpheus row first)
   readonly property string pillScreenName: bar.screen ? bar.screen.name : ""
   readonly property bool focusOnPillScreen: {
-    const m = Hyprland.focusedMonitor;
+    const m = Compositor.focusedMonitor;
     return m !== null && m !== undefined && m.name === root.pillScreenName;
   }
   // the pill only morphs when the open layer lives on the pill's monitor;

@@ -23,7 +23,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Services.Pam
 import Quickshell.Widgets
 import "../morpheus"
@@ -95,6 +95,7 @@ Scope {
   // Background only (Oracle's Behind the lock) covers the desktop with the
   // picture, so there is nothing to blur and no raise is owed.
   function frost(on) {
+    if (Compositor.isWayfire) return;
     if (on && Oracle.lockBackground === "plain") on = false;
     root.frosted = on;
     const f = Strings.shellQuote(root.blurSave);
@@ -118,7 +119,7 @@ Scope {
   }
 
   Connections {
-    target: Hyprland
+    target: Compositor
     function onRawEvent(ev) {
       if (ev.name === "configreloaded" && root.frosted) root.frost(true);
     }
@@ -129,6 +130,7 @@ Scope {
   // lock parks it (zoom.lua remembers the level) as the veil comes in and
   // hands it back as the veil goes out. Guarded: zoom.lua may not be loaded.
   function zoom(park) {
+    if (Compositor.isWayfire) return;
     const fn = park ? "zoom_park" : "zoom_unpark";
     Quickshell.execDetached(["hyprctl", "-q", "eval", "if " + fn + " then " + fn + "() end"]);
   }

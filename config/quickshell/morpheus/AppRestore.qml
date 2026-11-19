@@ -33,8 +33,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
-import "hypr.js" as Hypr
+import "../compositor"
+import "../compositor/commands.js" as Hypr
 
 Item {
   id: restore
@@ -49,6 +49,7 @@ Item {
   readonly property string script: Quickshell.shellDir + "/morpheus/py/apprestore.py"
 
   function save() {
+    if (Compositor.isWayfire) return;
     if (!restore.on || !restore.armed || saver.running) return;
     saver.running = true;
   }
@@ -59,7 +60,7 @@ Item {
   // is what the file says before anything is decided
   Timer {
     interval: 1500
-    running: true
+    running: !Compositor.isWayfire
     onTriggered: {
       if (restore.on) planner.running = true;
       else restore.armed = true;
@@ -94,7 +95,7 @@ Item {
     triggeredOnStart: true
     onTriggered: {
       const l = restore.queue.shift();
-      if (l) Hyprland.dispatch(Hypr.execWith(l.cmd, l.rules || {}));
+      if (l) Compositor.dispatch(Hypr.execWith(l.cmd, l.rules || {}));
       if (!restore.queue.length) {
         launcher.stop();
         // the last ones a few seconds to map before the first save
@@ -149,7 +150,7 @@ Item {
   Timer { interval: 30000; repeat: true; running: restore.on && restore.armed; onTriggered: restore.save() }
 
   Connections {
-    target: Hyprland
+    target: Compositor
     function onRawEvent(event) {
       const n = event.name;
       if (n === "openwindow" && forget.running) restore.mapped(event.data);

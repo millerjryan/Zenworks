@@ -40,6 +40,7 @@
 // you see is always what you pick.
 
 import QtQuick
+import "../compositor"
 import QtQuick.Effects
 import QtQuick.Shapes
 import Quickshell
@@ -106,7 +107,7 @@ Scope {
 
   Process {
     id: cursorProc
-    command: ["hyprctl", "cursorpos"]
+    command: Compositor.query(["hyprctl", "cursorpos"])
     stdout: StdioCollector {
       id: cursorOut
       onStreamFinished: {

@@ -20,7 +20,7 @@
 
 import QtQuick
 import Quickshell.Widgets
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "."
 import "../oracle"
@@ -92,7 +92,7 @@ LayerPopup {
 
   // ── opening ─────────────────────────────────────────────────────────────
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     windows: [ popup ]
     active: popup.shown
     onCleared: popup.closePopup()

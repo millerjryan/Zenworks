@@ -37,13 +37,12 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Wayland
 import "."
 import "../terminus" as Term
 import "switcher.js" as S
-import "offspecial.js" as Off
-import "hypr.js" as Hypr
+import "../compositor/commands.js" as Hypr
 
 PanelWindow {
   id: sw
@@ -101,8 +100,8 @@ PanelWindow {
   property bool peeking: false
   function peek(pick) {
     const p = S.peekPlan(sw.windows.map((w) => w.address), pick, sw.peeked);
-    for (const a of p.add) Hyprland.dispatch(Hypr.tagWindow(Hypr.byAddress(a), "zen-peek", true));
-    for (const a of p.drop) Hyprland.dispatch(Hypr.tagWindow(Hypr.byAddress(a), "zen-peek", false));
+    for (const a of p.add) Compositor.dispatch(Hypr.tagWindow(Hypr.byAddress(a), "zen-peek", true));
+    for (const a of p.drop) Compositor.dispatch(Hypr.tagWindow(Hypr.byAddress(a), "zen-peek", false));
     sw.peeked = p.tagged;
   }
   Timer {
@@ -125,25 +124,25 @@ PanelWindow {
   // ── MOST RECENTLY USED ──
   property var mru: []
   Connections {
-    target: Hyprland
+    target: Compositor
     function onActiveToplevelChanged() {
-      if (Hyprland.activeToplevel) sw.mru = S.touch(sw.mru, Hyprland.activeToplevel.address);
+      if (Compositor.activeToplevel) sw.mru = S.touch(sw.mru, Compositor.activeToplevel.address);
     }
   }
   // what hyprland remembers from before the shell started, once its
   // clients have been read
-  Component.onCompleted: { Hyprland.refreshToplevels(); seedLater.start(); }
+  Component.onCompleted: { Compositor.refreshToplevels(); seedLater.start(); }
   Timer {
     id: seedLater
     interval: 1500
     onTriggered: {
-      const seeded = S.seed(Hyprland.toplevels.values.map((t) => ({
+      const seeded = S.seed(Compositor.toplevels.values.map((t) => ({
         address: t.address,
         history: t.lastIpcObject && t.lastIpcObject.focusHistoryID !== undefined ? t.lastIpcObject.focusHistoryID : -1 })));
       sw.mru = sw.mru.concat(seeded.filter((a) => sw.mru.indexOf(a) < 0));
       // a peek a reload or crash left behind (finish never ran) is lifted
-      for (const t of Hyprland.toplevels.values)
-        Hyprland.dispatch(Hypr.tagWindow(Hypr.byAddress(t.address), "zen-peek", false));
+      for (const t of Compositor.toplevels.values)
+        Compositor.dispatch(Hypr.tagWindow(Hypr.byAddress(t.address), "zen-peek", false));
     }
   }
 
@@ -170,12 +169,12 @@ PanelWindow {
     if (seq < sw.lastSeq) sw.pendingCommit = 0;
     sw.lastSeq = seq;
     if (!sw.open) {
-      const app = sw.appOf(Hyprland.activeToplevel);
-      const here = Hyprland.toplevels.values.filter((t) => t.wayland && (!oneApp || sw.appOf(t) === app));
+      const app = sw.appOf(Compositor.activeToplevel);
+      const here = Compositor.toplevels.values.filter((t) => t.wayland && (!oneApp || sw.appOf(t) === app));
       if (here.length === 0) return;
       // closed windows out of the order — pruned against every window, not
       // `here`: one app's card would otherwise forget the others' order
-      sw.mru = sw.mru.filter((a) => Hyprland.toplevels.values.some((t) => t.address === a));
+      sw.mru = sw.mru.filter((a) => Compositor.toplevels.values.some((t) => t.address === a));
       sw.windows = S.ordered(here.map((t) => ({ address: t.address, win: t })), sw.mru);
       sw.at = S.firstStop(dir, sw.windows.length);
       sw.lastPoint = null;
@@ -196,7 +195,7 @@ PanelWindow {
   function closeAt(i) {
     const w = sw.windows[i];
     if (!w) return;
-    Hyprland.dispatch(Hypr.closeWindow(Hypr.byAddress(w.address)));
+    Compositor.dispatch(Hypr.closeWindow(Hypr.byAddress(w.address)));
     const left = sw.windows.slice();
     left.splice(i, 1);
     sw.windows = left;
@@ -224,7 +223,7 @@ PanelWindow {
     // focused AND raised: focus alone left a window under the floating ones
     // over it (user, 2026-10-26). Raised even when it already has the focus.
     if (go && sw.open && w)
-      Quickshell.execDetached(Off.wanted([Hypr.focusWindow(Hypr.byAddress(w.address)),
+      Quickshell.execDetached(Compositor.wanted([Hypr.focusWindow(Hypr.byAddress(w.address)),
                                           Hypr.raiseWindow(Hypr.byAddress(w.address))]));
     sw.peeking = false;
     sw.peek("");
@@ -326,8 +325,8 @@ PanelWindow {
             Rectangle {
               id: wsBadge
               readonly property bool special: /^special:/.test(tile.wsName)
-              readonly property string mark: tile.win && tile.win.workspace && Hyprland.focusedWorkspace
-                && tile.win.workspace !== Hyprland.focusedWorkspace
+              readonly property string mark: tile.win && tile.win.workspace && Compositor.focusedWorkspace
+                && tile.win.workspace !== Compositor.focusedWorkspace
                 ? (wsBadge.special ? "\uEAAE" : tile.wsName) : ""
               visible: wsBadge.mark !== ""
               x: (shot.hasContent ? shot.x + shot.width : frame.width) - width - 8

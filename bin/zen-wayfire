@@ -1,0 +1,57 @@
+#!/bin/sh
+set -eu
+
+fail() { printf 'zen-wayfire: %s\n' "$*" >&2; exit 1; }
+
+launcher=$(readlink -f "$0")
+source_root=$(dirname "$(dirname "$launcher")")/config
+root=${ZENWORKS_ROOT:-/usr/local/share/zenworks-wayfire}
+if [ -z "${ZENWORKS_ROOT:-}" ] && [ -f "$source_root/wayfire/wayfire.ini" ]; then
+    root=$source_root
+fi
+[ -f "$root/wayfire/wayfire.ini" ] && [ -f "$root/quickshell/shell.qml" ] || fail "No Wayfire-enabled Zenworks at $root"
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/zenworks-wayfire"
+config="$config_dir/wayfire.ini"
+export ZENWORKS_WAYFIRE_CONFIG="$config"
+export ZENWORKS_ROOT="$root"
+export ZENWORKS_COMPOSITOR=wayfire
+export QS_CONFIG_PATH="$root/quickshell"
+export PATH="$(dirname "$launcher"):$PATH"
+
+case ${1:-} in
+    --where) printf '%s\n%s\n' "$root" "$config"; exit 0 ;;
+    --init)
+        mkdir -p "$config_dir"
+        if [ ! -e "$config" ]; then cp "$root/wayfire/wayfire.ini" "$config"; fi
+        printf '%s\n' "$config"
+        exit 0 ;;
+    --record)
+        [ "$#" -eq 2 ] || fail "Usage: zen-wayfire --record screen|region|window|stop"
+        case $2 in screen|region|window|stop) ;; *) fail "Unknown recording mode: $2" ;; esac
+        exec qs ipc call WayfireCapture record "$2" ;;
+    --shell)
+        [ -n "${WAYFIRE_SOCKET:-}" ] || fail "Wayfire IPC is unavailable; enable ipc and ipc-rules"
+        command -v qs >/dev/null || fail "Install quickshell"
+        export XDG_CURRENT_DESKTOP=ZENWORKS-WAYFIRE:Wayfire
+        export XDG_SESSION_DESKTOP=zenworks-wayfire
+        # Import only this session's environment, never terminate other sessions.
+        dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP QS_CONFIG_PATH ZENWORKS_COMPOSITOR WAYFIRE_SOCKET
+        exec "$root/wayfire/session.sh" ;;
+    "") ;;
+    *) fail "Usage: zen-wayfire [--init | --where | --record MODE]" ;;
+esac
+
+[ -z "${WAYLAND_DISPLAY:-}" ] && [ -z "${DISPLAY:-}" ] || fail "Start from a login screen or text console, not an existing graphical session"
+for dependency in wayfire qs python3 dbus-run-session; do
+    command -v "$dependency" >/dev/null || fail "Missing dependency: $dependency"
+done
+mkdir -p "$config_dir"
+if [ ! -e "$config" ]; then cp "$root/wayfire/wayfire.ini" "$config"; fi
+export XDG_CURRENT_DESKTOP=ZENWORKS-WAYFIRE:Wayfire
+export XDG_SESSION_DESKTOP=zenworks-wayfire
+export XDG_SESSION_TYPE=wayland
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+    exec dbus-run-session -- wayfire -c "$config"
+fi
+exec wayfire -c "$config"

@@ -15,7 +15,7 @@
 import QtQuick
 import Quickshell.Widgets
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "../oracle"
 import "howler.js" as Wolf
@@ -58,7 +58,7 @@ LayerPopup {
                     96 + n * popup.rowH + 12);
   }
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     id: grab
     // the row menu is a layer surface of its own: in the grab, or opening
     // it would read as a click away (as Zeus' profile menu)

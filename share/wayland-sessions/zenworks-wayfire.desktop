@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Zenworks (Wayfire)
+Comment=Zenworks Quickshell desktop on a separate Wayfire configuration
+Exec=zen-wayfire
+TryExec=zen-wayfire
+Type=Application
+DesktopNames=ZENWORKS-WAYFIRE;Wayfire;

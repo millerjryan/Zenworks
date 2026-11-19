@@ -29,6 +29,7 @@
 // morpheus/qmldir is not seen by a live reload.
 
 import QtQuick
+import "../compositor"
 import Quickshell
 import Quickshell.Io
 import "../oracle"
@@ -169,13 +170,15 @@ Item {
     onTriggered: {
       if (sync.put(kittyConfFile, sync.kittyConfText, true)) tell.kitty = true;
       if (sync.put(kittyFile, sync.kittyText)) tell.kitty = true;
-      if (sync.put(hyprFile, sync.hyprText)) tell.hypr = true;
-      if (sync.put(fontFile, sync.fontText, true)) tell.hypr = true;
-      if (sync.put(cornerFile, sync.cornerText, true)) tell.hypr = true;
-      if (sync.put(frostFile, sync.frostText, true)) tell.hypr = true;
+      if (!Compositor.isWayfire) {
+        if (sync.put(hyprFile, sync.hyprText)) tell.hypr = true;
+        if (sync.put(fontFile, sync.fontText, true)) tell.hypr = true;
+        if (sync.put(cornerFile, sync.cornerText, true)) tell.hypr = true;
+        if (sync.put(frostFile, sync.frostText, true)) tell.hypr = true;
+      }
       // the env for apps started from now on (reload), the pointer now
       // (setcursor), and GTK's and X's once it has landed (cursorFile)
-      if (sync.cursorText !== "" && sync.put(cursorFile, sync.cursorText, true)) {
+      if (!Compositor.isWayfire && sync.cursorText !== "" && sync.put(cursorFile, sync.cursorText, true)) {
         tell.hypr = true;
         tell.cursor = true;
       }

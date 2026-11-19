@@ -21,7 +21,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Wayland
 import "oracle.js" as Ora
 import "../morpheus"
@@ -85,7 +85,7 @@ PanelWindow {
     sheet.heldAt = 0;
   }
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     windows: [ sheet ]
     active: sheet.shown
     onCleared: sheet.close()

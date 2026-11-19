@@ -35,4 +35,7 @@ for p in $pids; do
     kill -0 "$p" 2>/dev/null && kill -KILL "$p" 2>/dev/null
 done
 
+if [ "${ZENWORKS_WAYFIRE_SUPERVISED:-}" = 1 ]; then
+    exit 0
+fi
 exec "$dir/launch.sh" -n -d "$@"

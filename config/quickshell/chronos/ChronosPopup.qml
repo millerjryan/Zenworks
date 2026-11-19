@@ -20,7 +20,7 @@
 
 import QtQuick
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Widgets
 import "../morpheus"
 import "../terminus"
@@ -332,7 +332,7 @@ LayerPopup {
 
   Component.onCompleted: popup.goToday()
 
-  HyprlandFocusGrab {
+  CompositorFocusGrab {
     id: grab
     windows: [ popup ]
     active: popup.shown

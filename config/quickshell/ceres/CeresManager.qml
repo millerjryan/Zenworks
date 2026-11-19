@@ -21,7 +21,7 @@ import QtQuick
 import Quickshell
 import "."
 import "../morpheus"
-import Quickshell.Hyprland
+import "../compositor"
 import Quickshell.Io
 import "../morpheus/lagnotes.js" as LagNotes
 import "../oracle"
@@ -195,7 +195,7 @@ Scope {
   // means "put it away". Open but somewhere else, a toggle brings it here —
   // it used to close it, so the press that should have shown it hid it.
   readonly property bool focused: {
-    const t = Hyprland.activeToplevel;
+    const t = Compositor.activeToplevel;
     return mgr.shown && !!t && t.title === "ceres";
   }
 

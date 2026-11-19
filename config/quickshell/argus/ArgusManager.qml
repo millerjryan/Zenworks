@@ -16,6 +16,7 @@
 //   howler's "Recording Stopped" card  its scissors
 
 import QtQuick
+import "../compositor"
 import Quickshell
 import Quickshell.Io
 import "../morpheus"
@@ -139,6 +140,7 @@ Scope {
   readonly property int cursorSize: Number(Quickshell.env("XCURSOR_SIZE")) || 24
   property bool pointerBig: false
   function bigPointer(on) {
+    if (Compositor.isWayfire) return;
     if (on === mgr.pointerBig) return;
     mgr.pointerBig = on;
     Quickshell.execDetached(["hyprctl", "setcursor", mgr.cursorTheme, String(on ? mgr.cursorSize * 2 : mgr.cursorSize)]);

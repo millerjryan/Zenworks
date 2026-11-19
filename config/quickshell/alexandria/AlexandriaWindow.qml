@@ -40,7 +40,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
+import "../compositor"
 import "../morpheus"
 import "../morpheus/controls" as Ctl
 import "../terminus"
@@ -166,7 +166,7 @@ FloatingWindow {
   // it ends on the wrong row as easily as the right one.
   property int thawPulse: 0
   Connections {
-    target: Hyprland
+    target: Compositor
     function onFocusedWorkspaceChanged() { win.thawPulse++; }
   }
   // typing a search lands on its best match, not on the family you were on

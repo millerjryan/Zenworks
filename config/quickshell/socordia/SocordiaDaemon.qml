@@ -12,6 +12,7 @@
 // a sibling object in this same shell now, so socordia just calls it.
 
 import QtQuick
+import "../compositor"
 import QtQml
 import Quickshell
 import Quickshell.Io
@@ -20,7 +21,7 @@ import Quickshell.Services.Mpris
 import Quickshell.Services.Pipewire
 import "../morpheus"
 import "../oracle"
-import "../morpheus/hypr.js" as Hypr
+import "../compositor/commands.js" as Hypr
 
 Scope {
   id: root
@@ -285,7 +286,8 @@ Scope {
   // is a syntax error here, and the lua form is the one that answers "ok".
   // hypridle.conf had it both ways; only this one ever worked.
   function dpms(on) {
-    root.run(["hyprctl", "dispatch", Hypr.dpms(on)]);
+    if (Compositor.isWayfire) Compositor.dispatch(Hypr.dpms(on));
+    else root.run(["hyprctl", "dispatch", Hypr.dpms(on).native]);
   }
 
   // One IdleMonitor per ported listener. ext-idle-notify does the counting,

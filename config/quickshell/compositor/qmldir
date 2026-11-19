@@ -1,0 +1,2 @@
+singleton Compositor 1.0 Compositor.qml
+CompositorFocusGrab 1.0 CompositorFocusGrab.qml
